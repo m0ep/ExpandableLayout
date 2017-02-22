@@ -18,7 +18,7 @@ import android.widget.LinearLayout;
 /**
  * An View that can expand and collapse its content when the header was clicked.
  */
-public class ExpandableView extends LinearLayout {
+public class ExpandableLayout extends LinearLayout {
     private int headerLayoutId;
     private int contentLayoutId;
 
@@ -33,26 +33,26 @@ public class ExpandableView extends LinearLayout {
 
     private ExpandListener expandListener;
 
-    public ExpandableView(Context context) {
+    public ExpandableLayout(Context context) {
         super(context);
         initView(context);
     }
 
-    public ExpandableView(Context context, AttributeSet attrs) {
+    public ExpandableLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
         readAttributes(context, attrs, 0, 0);
         initView(context);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
-    public ExpandableView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public ExpandableLayout(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         readAttributes(context, attrs, defStyleAttr, 0);
         initView(context);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    public ExpandableView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+    public ExpandableLayout(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         readAttributes(context, attrs, defStyleAttr, defStyleRes);
         initView(context);
@@ -67,16 +67,16 @@ public class ExpandableView extends LinearLayout {
      * @param defStyleRes  The default style resource for this View.
      */
     private void readAttributes(Context context, AttributeSet attrs, @AttrRes int defStyleAttr, @StyleRes int defStyleRes) {
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ExpandableView, defStyleAttr, defStyleRes);
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ExpandableLayout, defStyleAttr, defStyleRes);
         try {
             final int N = a.getIndexCount();
             for (int i = 0; i < N; i++) {
                 int attr = a.getIndex(i);
-                if (R.styleable.ExpandableView_el_headerLayout == attr) {
+                if (R.styleable.ExpandableLayout_el_headerLayout == attr) {
                     headerLayoutId = a.getResourceId(attr, 0);
-                } else if (R.styleable.ExpandableView_el_contentLayout == attr) {
+                } else if (R.styleable.ExpandableLayout_el_contentLayout == attr) {
                     contentLayoutId = a.getResourceId(attr, 0);
-                } else if (R.styleable.ExpandableView_el_initialState == attr) {
+                } else if (R.styleable.ExpandableLayout_el_initialState == attr) {
                     isOpen = 0 != a.getInteger(attr, 0);
                 }
             }
@@ -333,7 +333,7 @@ public class ExpandableView extends LinearLayout {
     }
 
     /**
-     * User interface state that is stored by {@link ExpandableView} for implementing
+     * User interface state that is stored by {@link ExpandableLayout} for implementing
      * {@link View#onSaveInstanceState}.
      */
     public static class SavedState extends BaseSavedState {

@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <de.florianm.android.expandablelayout.ExpandableView
+    <de.florianm.android.expandablelayout.ExpandableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:el_headerLayout="@layout/view_expandable_header"

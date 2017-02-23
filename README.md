@@ -10,5 +10,5 @@
     }
 
     dependencies {
-      compile 'com.github.m0ep:ExpandableLayout:1.0.1'
+      compile 'com.github.m0ep:ExpandableLayout:1.1.0'
     }

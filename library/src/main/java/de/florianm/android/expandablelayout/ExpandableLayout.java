@@ -12,20 +12,13 @@ import android.support.annotation.AttrRes;
 import android.support.annotation.RequiresApi;
 import android.support.annotation.StyleRes;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.view.animation.Transformation;
 import android.widget.LinearLayout;
 
 /**
  * An View that can expand and collapse its content when the header was clicked.
  */
 public class ExpandableLayout extends LinearLayout {
-    public static final String TAG = ExpandableLayout.class.getSimpleName();
-
     private int headerId;
     private int contentId;
 
@@ -118,7 +111,6 @@ public class ExpandableLayout extends LinearLayout {
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-        Log.d(TAG, "onFinishInflate - isInitialOpen=" + isInitialOpen);
 
         View view = findViewById(headerId);
         if (null == view) {
@@ -199,8 +191,6 @@ public class ExpandableLayout extends LinearLayout {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
-                contentView.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                contentView.requestLayout();
                 isAnimationRunning = false;
                 onContentExpanded();
             }
@@ -213,26 +203,6 @@ public class ExpandableLayout extends LinearLayout {
      */
     private void collapseContentAnimated() {
         isAnimationRunning = true;
-
-        /*
-        Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.expandable_layout_hide);
-        animation.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-            }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                isAnimationRunning = false;
-                onContentCollapsed();
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-            }
-        });
-        contentView.startAnimation(animation);
-    */
 
         final int initialHeight = contentView.getMeasuredHeight();
         ValueAnimator valueAnimator = ValueAnimator.ofInt(initialHeight, 0);
@@ -248,8 +218,7 @@ public class ExpandableLayout extends LinearLayout {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
-                contentView.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                contentView.requestLayout();
+                contentView.setVisibility(View.GONE);
                 isAnimationRunning = false;
                 onContentCollapsed();
             }
@@ -286,7 +255,7 @@ public class ExpandableLayout extends LinearLayout {
     private void onContentCollapsed() {
         isInitialOpen = false;
         headerView.setSelected(false);
-        contentView.setVisibility(View.GONE);
+
 
         if (null != expandListener) {
             expandListener.onCollapsed();
@@ -364,8 +333,6 @@ public class ExpandableLayout extends LinearLayout {
         } else {
             collapseContentInstantly();
         }
-
-        Log.d(TAG, "onRestoreInstanceState - isOpen=" + isOpen);
     }
 
     /**

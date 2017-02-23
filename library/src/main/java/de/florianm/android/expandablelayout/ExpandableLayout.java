@@ -1,5 +1,8 @@
 package de.florianm.android.expandablelayout;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Build;
@@ -9,29 +12,32 @@ import android.support.annotation.AttrRes;
 import android.support.annotation.RequiresApi;
 import android.support.annotation.StyleRes;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.view.animation.Transformation;
 import android.widget.LinearLayout;
 
 /**
  * An View that can expand and collapse its content when the header was clicked.
  */
 public class ExpandableLayout extends LinearLayout {
-    private int headerLayoutId;
-    private int contentLayoutId;
+    public static final String TAG = ExpandableLayout.class.getSimpleName();
 
-    private ViewGroup headerContainer;
-    private ViewGroup contentContainer;
+    private int headerId;
+    private int contentId;
 
     private View headerView;
     private View contentView;
 
-    private boolean isOpen = false;
+    private boolean isInitialOpen = false;
     private boolean isAnimationRunning = false;
 
     private ExpandListener expandListener;
+
+    private int animationDuration = 400;
 
     public ExpandableLayout(Context context) {
         super(context);
@@ -61,10 +67,14 @@ public class ExpandableLayout extends LinearLayout {
     /**
      * Read XML attributes. Must be called before {@link #initView(Context)}.
      *
-     * @param context      The context that created this View.
-     * @param attrs        The XML attributes set.
-     * @param defStyleAttr The theme attribute that hold the default style for this View.
-     * @param defStyleRes  The default style resource for this View.
+     * @param context
+     *         The context that created this View.
+     * @param attrs
+     *         The XML attributes set.
+     * @param defStyleAttr
+     *         The theme attribute that hold the default style for this View.
+     * @param defStyleRes
+     *         The default style resource for this View.
      */
     private void readAttributes(Context context, AttributeSet attrs, @AttrRes int defStyleAttr, @StyleRes int defStyleRes) {
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ExpandableLayout, defStyleAttr, defStyleRes);
@@ -72,41 +82,57 @@ public class ExpandableLayout extends LinearLayout {
             final int N = a.getIndexCount();
             for (int i = 0; i < N; i++) {
                 int attr = a.getIndex(i);
-                if (R.styleable.ExpandableLayout_el_headerLayout == attr) {
-                    headerLayoutId = a.getResourceId(attr, 0);
-                } else if (R.styleable.ExpandableLayout_el_contentLayout == attr) {
-                    contentLayoutId = a.getResourceId(attr, 0);
+                if (R.styleable.ExpandableLayout_el_headerId == attr) {
+                    headerId = a.getResourceId(attr, 0);
+                } else if (R.styleable.ExpandableLayout_el_contentId == attr) {
+                    contentId = a.getResourceId(attr, 0);
                 } else if (R.styleable.ExpandableLayout_el_initialState == attr) {
-                    isOpen = 0 != a.getInteger(attr, 0);
+                    isInitialOpen = 0 != a.getInteger(attr, 0);
                 }
             }
         } finally {
             a.recycle();
+        }
+
+        if (0 == headerId) {
+            throw new IllegalArgumentException("The attribute 'el_headerId' is mandatory for this layout");
+        }
+
+        if (0 == contentId) {
+            throw new IllegalArgumentException("The attribute 'el_contentId' is mandatory for this layout");
         }
     }
 
     /**
      * Initialize the View and inflate all needed view.
      *
-     * @param context The context that created this View.
+     * @param context
+     *         The context that created this View.
      */
     private void initView(Context context) {
-        View root = View.inflate(context, R.layout.view_expandable_layout, this);
+        setOrientation(VERTICAL);
 
-        headerContainer = (ViewGroup) root.findViewById(R.id.container_header);
-        contentContainer = (ViewGroup) root.findViewById(R.id.container_content);
+        animationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
+    }
 
-        if (0 != headerLayoutId) {
-            headerView = View.inflate(context, headerLayoutId, null);
-            setHeaderView(headerView);
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+        Log.d(TAG, "onFinishInflate - isInitialOpen=" + isInitialOpen);
+
+        View view = findViewById(headerId);
+        if (null == view) {
+            throw new IllegalArgumentException("No view found with that header id");
         }
+        setHeaderView(view);
 
-        if (0 != contentLayoutId) {
-            contentView = View.inflate(context, contentLayoutId, null);
-            setContentVieW(contentView);
+        view = findViewById(contentId);
+        if (null == view) {
+            throw new IllegalArgumentException("No view found with that header id");
         }
+        setContentVieW(view);
 
-        if (isOpen) {
+        if (isInitialOpen) {
             expandContentInstantly();
         } else {
             collapseContentInstantly();
@@ -116,32 +142,18 @@ public class ExpandableLayout extends LinearLayout {
     /**
      * Set the View that should be used as header and expand/collapsed trigger when clicked.
      *
-     * @param view The View that should be used as header.
+     * @param view
+     *         The View that should be used as header.
      */
-    public void setHeaderView(View view) {
-        if (0 < headerContainer.getChildCount()) {
-            headerContainer.removeAllViewsInLayout();
-        }
-
+    private void setHeaderView(View view) {
         headerView = view;
-        if (null != this.headerView) {
-            headerView.setLayoutParams(
-                    new ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-            );
-
-            headerView.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    onHeaderViewClicked();
-                }
-            });
-            headerView.setSelected(isOpen);
-
-            headerContainer.addView(headerView);
-        }
+        headerView.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onHeaderViewClicked();
+            }
+        });
+        headerView.setSelected(isInitialOpen);
     }
 
     /**
@@ -149,7 +161,7 @@ public class ExpandableLayout extends LinearLayout {
      */
     private void onHeaderViewClicked() {
         if (!isAnimationRunning) {
-            if (isOpen) {
+            if (View.VISIBLE == contentView.getVisibility()) {
                 //collapseContentInstantly();
                 collapseContentAnimated();
             } else {
@@ -165,24 +177,35 @@ public class ExpandableLayout extends LinearLayout {
     private void expandContentAnimated() {
         isAnimationRunning = true;
 
-        Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.expandable_layout_show);
-        animation.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-                contentContainer.setVisibility(View.VISIBLE);
-            }
+        int widthSpec = MeasureSpec.makeMeasureSpec(getMeasuredWidth(), MeasureSpec.EXACTLY);
+        int heightSpec = MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.UNSPECIFIED);
 
+        contentView.measure(widthSpec, heightSpec);
+        final int targetHeight = contentView.getMeasuredHeight();
+
+        contentView.getLayoutParams().height = 0;
+        contentView.setVisibility(View.VISIBLE);
+
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(0, targetHeight);
+        valueAnimator.setDuration(animationDuration);
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
-            public void onAnimationEnd(Animation animation) {
+            public void onAnimationUpdate(ValueAnimator animation) {
+                contentView.getLayoutParams().height = (int) animation.getAnimatedValue();
+                contentView.requestLayout();
+            }
+        });
+        valueAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                contentView.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                contentView.requestLayout();
                 isAnimationRunning = false;
                 onContentExpanded();
             }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-            }
         });
-        contentContainer.startAnimation(animation);
+        valueAnimator.start();
     }
 
     /**
@@ -191,6 +214,7 @@ public class ExpandableLayout extends LinearLayout {
     private void collapseContentAnimated() {
         isAnimationRunning = true;
 
+        /*
         Animation animation = AnimationUtils.loadAnimation(getContext(), R.anim.expandable_layout_hide);
         animation.setAnimationListener(new Animation.AnimationListener() {
             @Override
@@ -207,36 +231,48 @@ public class ExpandableLayout extends LinearLayout {
             public void onAnimationRepeat(Animation animation) {
             }
         });
-        contentContainer.startAnimation(animation);
+        contentView.startAnimation(animation);
+    */
+
+        final int initialHeight = contentView.getMeasuredHeight();
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(initialHeight, 0);
+        valueAnimator.setDuration(animationDuration);
+        valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                contentView.getLayoutParams().height = (int) animation.getAnimatedValue();
+                contentView.requestLayout();
+            }
+        });
+        valueAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                contentView.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                contentView.requestLayout();
+                isAnimationRunning = false;
+                onContentCollapsed();
+            }
+        });
+        valueAnimator.start();
+
     }
 
     /**
      * Set the content that can be expanded and collapsed.
      *
-     * @param view The view that should be used as collapsable content.
+     * @param view
+     *         The view that should be used as collapsable content.
      */
-    public void setContentVieW(View view) {
-        if (0 < contentContainer.getChildCount()) {
-            contentContainer.removeAllViewsInLayout();
-        }
-
+    private void setContentVieW(View view) {
         contentView = view;
-        if (null != view) {
-            contentView.setLayoutParams(
-                    new ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-            );
-            contentContainer.addView(contentView);
-        }
     }
 
     /**
      * Callback method that will be called of the content is fully expanded.
      */
     private void onContentExpanded() {
-        isOpen = true;
+        isInitialOpen = true;
         headerView.setSelected(true);
 
         if (null != expandListener) {
@@ -248,9 +284,9 @@ public class ExpandableLayout extends LinearLayout {
      * Callback method that will be called of the content is fully collapsed.
      */
     private void onContentCollapsed() {
-        isOpen = false;
+        isInitialOpen = false;
         headerView.setSelected(false);
-        contentContainer.setVisibility(View.GONE);
+        contentView.setVisibility(View.GONE);
 
         if (null != expandListener) {
             expandListener.onCollapsed();
@@ -274,10 +310,27 @@ public class ExpandableLayout extends LinearLayout {
     /**
      * Set a listener to get notified if the content was expanded or collapsed.
      *
-     * @param expandListener The listener.
+     * @param expandListener
+     *         The listener.
      */
     public void setExpandListener(ExpandListener expandListener) {
         this.expandListener = expandListener;
+    }
+
+    /**
+     * Expand the content instantly without any animation.
+     */
+    private void expandContentInstantly() {
+        contentView.setVisibility(View.VISIBLE);
+        onContentExpanded();
+    }
+
+    /**
+     * Collapse the content instantly without any animation.
+     */
+    private void collapseContentInstantly() {
+        contentView.setVisibility(View.GONE);
+        onContentCollapsed();
     }
 
     /**
@@ -287,7 +340,7 @@ public class ExpandableLayout extends LinearLayout {
     protected Parcelable onSaveInstanceState() {
         Parcelable superState = super.onSaveInstanceState();
         SavedState savedState = new SavedState(superState);
-        savedState.setOpen(isOpen);
+        savedState.setOpen(View.VISIBLE == contentView.getVisibility());
         return savedState;
     }
 
@@ -304,37 +357,35 @@ public class ExpandableLayout extends LinearLayout {
         SavedState ss = (SavedState) state;
         super.onRestoreInstanceState(ss.getSuperState());
 
-        isOpen = ss.isOpen();
+
+        boolean isOpen = ss.isOpen();
         if (isOpen) {
             expandContentInstantly();
         } else {
             collapseContentInstantly();
         }
+
+        Log.d(TAG, "onRestoreInstanceState - isOpen=" + isOpen);
     }
 
     /**
-     * Expand the content instantly without any animation.
+     * Listener to get notified if the content was expanded or collapsed.
      */
-    private void expandContentInstantly() {
-        contentContainer.setScaleY(1.0f);
-        contentContainer.setAlpha(1.0f);
-        contentContainer.setVisibility(View.VISIBLE);
-        onContentExpanded();
+    public interface ExpandListener {
+        /**
+         * Method that will be called if the collapsed content is fully expanded.
+         */
+        void onExpanded();
+
+        /**
+         * Method that will be called if the expanded content is fully collapsed.
+         */
+        void onCollapsed();
     }
 
     /**
-     * Collapse the content instantly without any animation.
-     */
-    private void collapseContentInstantly() {
-        contentContainer.setScaleY(0.0f);
-        contentContainer.setAlpha(0.0f);
-        contentContainer.setVisibility(View.GONE);
-        onContentCollapsed();
-    }
-
-    /**
-     * User interface state that is stored by {@link ExpandableLayout} for implementing
-     * {@link View#onSaveInstanceState}.
+     * User interface state that is stored by {@link ExpandableLayout} for implementing {@link
+     * View#onSaveInstanceState}.
      */
     public static class SavedState extends BaseSavedState {
 
@@ -375,20 +426,5 @@ public class ExpandableLayout extends LinearLayout {
         public boolean isOpen() {
             return isOpen;
         }
-    }
-
-    /**
-     * Listener to get notified if the content was expanded or collapsed.
-     */
-    public interface ExpandListener {
-        /**
-         * Method that will be called if the collapsed content is fully expanded.
-         */
-        void onExpanded();
-
-        /**
-         * Method that will be called if the expanded content is fully collapsed.
-         */
-        void onCollapsed();
     }
 }

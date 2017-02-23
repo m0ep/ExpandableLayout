@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/activity_main"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:app="http://schemas.android.com/apk/res-auto"
+              xmlns:tools="http://schemas.android.com/tools"
+              android:id="@+id/activity_main"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              tools:context=".MainActivity">
 
     <de.florianm.android.expandablelayout.ExpandableLayout
+        android:id="@+id/expandable_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:el_headerLayout="@layout/view_expandable_header"
-        app:el_contentLayout="@layout/view_expandable_content"
-        app:el_initialState="open"/>
+        app:el_contentId="@+id/expandable_content"
+        app:el_headerId="@+id/expandable_header"
+        app:el_initialState="close">
 
-</RelativeLayout>
+        <Button
+            android:id="@+id/expandable_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/expandable_header_background_selector"
+            android:foreground="?attr/selectableItemBackground"
+            android:text="Header"
+            android:textColor="@color/text_light_normal"/>
+
+        <TextView
+            android:id="@+id/expandable_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="@string/cake_ipsum"/>
+    </de.florianm.android.expandablelayout.ExpandableLayout>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Other Button"/>
+
+</LinearLayout>

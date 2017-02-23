@@ -5,6 +5,7 @@
     android:interpolator="@android:interpolator/accelerate_quad"
     android:shareInterpolator="true">
 
+    <!--
     <scale
         android:duration="@android:integer/config_mediumAnimTime"
         android:fromXScale="1.0"
@@ -13,6 +14,10 @@
         android:pivotY="0"
         android:toXScale="1.0"
         android:toYScale="0.0" />
+    -->
+    <translate
+        android:fromYDelta="0.0"
+        android:toYDelta="-1.0"/>
 
     <alpha
         android:duration="@android:integer/config_mediumAnimTime"

@@ -169,6 +169,8 @@ public class ExpandableLayout extends LinearLayout {
     private void expandContentAnimated() {
         isAnimationRunning = true;
 
+        final int initialHeight = contentView.getMeasuredHeight();
+
         int widthSpec = MeasureSpec.makeMeasureSpec(getMeasuredWidth(), MeasureSpec.EXACTLY);
         int heightSpec = MeasureSpec.makeMeasureSpec(getMeasuredHeight(), MeasureSpec.UNSPECIFIED);
 
@@ -178,7 +180,7 @@ public class ExpandableLayout extends LinearLayout {
         contentView.getLayoutParams().height = 0;
         contentView.setVisibility(View.VISIBLE);
 
-        ValueAnimator valueAnimator = ValueAnimator.ofInt(0, targetHeight);
+        ValueAnimator valueAnimator = ValueAnimator.ofInt(initialHeight, targetHeight);
         valueAnimator.setDuration(animationDuration);
         valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
@@ -332,6 +334,17 @@ public class ExpandableLayout extends LinearLayout {
             expandContentInstantly();
         } else {
             collapseContentInstantly();
+        }
+    }
+
+    /**
+     * Notify this view that the content view has changed.
+     */
+    public void notifyContentChanged() {
+        if (View.VISIBLE == contentView.getVisibility()) {
+            expandContentAnimated();
+        } else {
+            collapseContentAnimated();
         }
     }
 
